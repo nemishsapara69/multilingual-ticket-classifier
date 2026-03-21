@@ -189,15 +189,7 @@ npm install
 npm run dev
 ```
 
-## Resume Highlights You Can Claim
 
-- Built multilingual NLP classifier using transformer fine-tuning (`xlm-roberta-base`).
-- Versioned data and training pipeline with DVC.
-- Tracked experiments and metrics with MLflow.
-- Served model via production-style FastAPI endpoint.
-- Built interactive demo app with React.
-- Containerized full stack with Docker.
-- Automated testing/build/retraining workflows using GitHub Actions.
 
 ## Notes
 
