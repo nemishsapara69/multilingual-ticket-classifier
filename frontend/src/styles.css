@@ -376,6 +376,12 @@ textarea:focus {
   font-weight: 700;
 }
 
+.empty-row {
+  text-align: center;
+  color: #8ea4c8;
+  padding: 12px 8px;
+}
+
 .status-tag {
   display: inline-block;
   border-radius: 999px;

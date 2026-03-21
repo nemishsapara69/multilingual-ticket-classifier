@@ -14,13 +14,6 @@ const ACCENTS = {
   ruby: { label: "Ruby", cyan: "#df5a8a", amber: "#ff8f6a" },
 };
 
-const TICKET_HISTORY = [
-  { id: "GT-1209", channel: "Web", language: "EN", category: "Order Tracking", status: "Queued", age: "02m" },
-  { id: "GT-1208", channel: "Email", language: "ES", category: "Technical Support", status: "Assigned", age: "07m" },
-  { id: "GT-1207", channel: "Phone", language: "DE", category: "Billing Inquiry", status: "Queued", age: "11m" },
-  { id: "GT-1206", channel: "Web", language: "EN", category: "Technical Support", status: "Escalated", age: "18m" },
-];
-
 function confidenceBand(value) {
   if (value >= 0.75) return { label: "High", tone: "ok" };
   if (value >= 0.5) return { label: "Medium", tone: "warn" };
@@ -34,6 +27,11 @@ function slaTarget(category, confidenceLabel) {
   return "Logistics queue: 1 hr";
 }
 
+function timelineTimeLabel(elapsedMs, index) {
+  if (index === 0 || elapsedMs <= 0) return "Now";
+  return `+${elapsedMs} ms`;
+}
+
 export default function App() {
   const [message, setMessage] = useState("");
   const [priority, setPriority] = useState("Normal");
@@ -45,15 +43,50 @@ export default function App() {
   const [agentNote, setAgentNote] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accent, setAccent] = useState("aurora");
+  const [dashboard, setDashboard] = useState({
+    queue: {
+      total_open: 0,
+      technical_support: 0,
+      billing_inquiry: 0,
+      order_tracking: 0,
+      manual_review: 0,
+    },
+    recent_tickets: [],
+  });
 
   const band = useMemo(() => {
     if (!result) return null;
     return confidenceBand(Number(result.confidence || 0));
   }, [result]);
 
+  const liveTimeline = useMemo(() => {
+    if (result?.processing_timeline?.length) {
+      return result.processing_timeline;
+    }
+
+    return [
+      { label: `Received from ${channel}`, elapsed_ms: 0 },
+      { label: "Text normalized and cleaned", elapsed_ms: 0 },
+      { label: "Model inference complete", elapsed_ms: 0 },
+      { label: "Queue recommendation generated", elapsed_ms: 0 },
+    ];
+  }, [result, channel]);
+
   useEffect(() => {
     const controller = new AbortController();
     const healthUrl = API_URL.replace(/\/predict$/, "/health");
+    const dashboardUrl = API_URL.replace(/\/predict$/, "/dashboard");
+
+    async function fetchDashboard() {
+      try {
+        const response = await fetch(dashboardUrl, { signal: controller.signal });
+        if (!response.ok) return;
+        const payload = await response.json();
+        setDashboard(payload);
+      } catch {
+        // Keep previous snapshot if refresh fails.
+      }
+    }
 
     async function checkApi() {
       try {
@@ -61,13 +94,21 @@ export default function App() {
         if (!response.ok) throw new Error("API unavailable");
         const payload = await response.json();
         setApiStatus(payload.model_loaded ? "Online" : "Model Not Loaded");
+        if (payload.model_loaded) {
+          await fetchDashboard();
+        }
       } catch {
         setApiStatus("Offline");
       }
     }
 
     checkApi();
-    return () => controller.abort();
+
+    const poll = setInterval(fetchDashboard, 10000);
+    return () => {
+      clearInterval(poll);
+      controller.abort();
+    };
   }, []);
 
   async function onClassify() {
@@ -84,7 +125,7 @@ export default function App() {
       const response = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: message }),
+        body: JSON.stringify({ text: message, priority, channel }),
       });
 
       if (!response.ok) {
@@ -94,6 +135,17 @@ export default function App() {
 
       const payload = await response.json();
       setResult(payload);
+
+      try {
+        const dashboardUrl = API_URL.replace(/\/predict$/, "/dashboard");
+        const dashboardResponse = await fetch(dashboardUrl);
+        if (dashboardResponse.ok) {
+          const dashboardPayload = await dashboardResponse.json();
+          setDashboard(dashboardPayload);
+        }
+      } catch {
+        // Ignore dashboard refresh errors.
+      }
     } catch (err) {
       setError(err.message || "Could not connect to API.");
     } finally {
@@ -151,23 +203,23 @@ export default function App() {
             <ul className="queue-list">
               <li>
                 <span>All Open Tickets</span>
-                <strong>128</strong>
+                <strong>{dashboard.queue.total_open}</strong>
               </li>
               <li>
                 <span>Technical Support</span>
-                <strong>54</strong>
+                <strong>{dashboard.queue.technical_support}</strong>
               </li>
               <li>
                 <span>Billing Inquiry</span>
-                <strong>37</strong>
+                <strong>{dashboard.queue.billing_inquiry}</strong>
               </li>
               <li>
                 <span>Order Tracking</span>
-                <strong>31</strong>
+                <strong>{dashboard.queue.order_tracking}</strong>
               </li>
               <li>
                 <span>Manual Review</span>
-                <strong>6</strong>
+                <strong>{dashboard.queue.manual_review}</strong>
               </li>
             </ul>
 
@@ -271,6 +323,13 @@ export default function App() {
                       <p className="metric-label">Ticket Meta</p>
                       <p className="metric-value small">{priority} | {channel}</p>
                     </article>
+
+                    <article className="metric-card">
+                      <p className="metric-label">Processing Time</p>
+                      <p className="metric-value small">
+                        {result.total_processing_ms ? `${result.total_processing_ms} ms` : "Pending"}
+                      </p>
+                    </article>
                   </div>
 
                   <article className="clean-box">
@@ -300,7 +359,7 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {TICKET_HISTORY.map((row) => (
+                    {dashboard.recent_tickets.map((row) => (
                       <tr key={row.id}>
                         <td>{row.id}</td>
                         <td>{row.channel}</td>
@@ -312,6 +371,11 @@ export default function App() {
                         <td>{row.age}</td>
                       </tr>
                     ))}
+                    {dashboard.recent_tickets.length === 0 && (
+                      <tr>
+                        <td colSpan="6" className="empty-row">No live tickets yet. Classify one message to populate this feed.</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -323,22 +387,12 @@ export default function App() {
 
             <h3>Routing Timeline</h3>
             <ol className="timeline">
-              <li>
-                <span>Received from {channel}</span>
-                <small>Now</small>
-              </li>
-              <li>
-                <span>Text normalized and cleaned</span>
-                <small>+100 ms</small>
-              </li>
-              <li>
-                <span>Model + fallback scoring complete</span>
-                <small>+220 ms</small>
-              </li>
-              <li>
-                <span>Queue recommendation generated</span>
-                <small>+280 ms</small>
-              </li>
+              {liveTimeline.map((step, index) => (
+                <li key={`${step.label}-${index}`}>
+                  <span>{step.label}</span>
+                  <small>{timelineTimeLabel(Number(step.elapsed_ms || 0), index)}</small>
+                </li>
+              ))}
             </ol>
 
             <h3>Agent Notes</h3>
