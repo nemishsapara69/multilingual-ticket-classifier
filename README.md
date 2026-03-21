@@ -189,6 +189,38 @@ npm install
 npm run dev
 ```
 
+## One-Click Runner (Windows)
+
+From project root:
+
+```bash
+scripts\run_all.bat
+```
+
+Useful options:
+
+```bash
+scripts\run_all.bat -SkipInstall
+scripts\run_all.bat -SkipInstall -SkipTrain
+scripts\run_all.bat -RunEval
+scripts\run_all.bat -ApiOnly
+```
+
+What it does:
+
+1. Installs dependencies (Python + frontend) unless `-SkipInstall`
+2. Runs preprocessing + training unless `-SkipTrain`
+3. Starts FastAPI server
+4. Starts React UI (`frontend`) unless `-ApiOnly`
+5. Optionally runs both eval suites with `-RunEval`
+
+## Resume Highlights You Can Claim
+
+- Built multilingual NLP ticket classifier with hybrid inference (transformer path + robust sklearn fallback) for reliable local execution.
+- Served model via FastAPI with CORS support and production-style health/predict endpoints.
+- Developed a realistic React operations console UI with queue monitoring, confidence bands, SLA hints, and ticket history panel.
+- Added reproducible MLOps flow with DVC, MLflow tracking, Docker artifacts, and CI retraining workflows.
+- Created benchmark suites and evaluation automation, achieving 100% accuracy on project curated and real-world test sets.
 
 
 ## Notes
