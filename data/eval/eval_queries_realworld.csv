@@ -1,0 +1,46 @@
+language,text,expected_category
+en,hey my cam is just black screen after update pls help,Technical Support
+en,cant pair the motion sensor with bluetooth,Technical Support
+en,2fa code not coming to my mail id,Technical Support
+en,gateway blinking red and devices dead,Technical Support
+en,app freezes when i open thermostat settings,Technical Support
+en,i got charged twice?? need fix,Billing Inquiry
+en,why invoice amount doesnt match my plan,Billing Inquiry
+en,cancelled yesterday but still billed today,Billing Inquiry
+en,need vat invoice for finance team asap,Billing Inquiry
+en,payment failed but bank already held amount,Billing Inquiry
+en,where is my parcel no updates since monday,Order Tracking
+en,courier says delivered but nothing at door,Order Tracking
+en,tracking number for replacement unit please,Order Tracking
+en,wrong shipping address entered can reroute,Order Tracking
+en,need proof of delivery for my package,Order Tracking
+es,hola la camara quedo en negro despues de actualizar,Technical Support
+es,no puedo emparejar sensor por bluetooth ayuda,Technical Support
+es,no llega el codigo de verificacion al correo,Technical Support
+es,la app se traba al abrir ajustes del termostato,Technical Support
+es,gateway parpadea rojo y nada responde,Technical Support
+es,me cobraron doble este mes que paso,Billing Inquiry
+es,cancele el plan pero me volvieron a cobrar,Billing Inquiry
+es,necesito factura con iva para contabilidad,Billing Inquiry
+es,pago rechazado pero el banco retuvo dinero,Billing Inquiry
+es,el monto de factura no coincide con el plan,Billing Inquiry
+es,donde esta mi pedido sin cambios desde ayer,Order Tracking
+es,el repartidor dice entregado y no recibi nada,Order Tracking
+es,me das numero de seguimiento del reemplazo,Order Tracking
+es,puse mal direccion de envio se puede corregir,Order Tracking
+es,necesito comprobante de entrega del paquete,Order Tracking
+de,kamerabild ist schwarz seit dem update,Technical Support
+de,ich kann den sensor nicht per bluetooth koppeln,Technical Support
+de,der bestatigungscode kommt nicht an,Technical Support
+de,app hangt bei thermostat einstellungen,Technical Support
+de,gateway blinkt rot und nichts reagiert,Technical Support
+de,doppelt abgebucht diesen monat bitte prufen,Billing Inquiry
+de,ich habe gekundigt aber wurde erneut belastet,Billing Inquiry
+de,ich brauche rechnung mit mwst fur buchhaltung,Billing Inquiry
+de,zahlung abgelehnt aber betrag reserviert,Billing Inquiry
+de,rechnungsbetrag passt nicht zu meinem tarif,Billing Inquiry
+de,wo ist mein paket seit tagen kein update,Order Tracking
+de,zugestellt gemeldet aber paket fehlt,Order Tracking
+de,bitte trackingnummer fur ersatzgeraet senden,Order Tracking
+de,falsche lieferadresse angegeben kann man andern,Order Tracking
+de,ich brauche zustellnachweis fur mein paket,Order Tracking

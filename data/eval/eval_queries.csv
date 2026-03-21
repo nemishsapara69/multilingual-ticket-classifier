@@ -1,0 +1,108 @@
+language,text,expected_category
+en,My smart bulb does not turn on,Technical Support
+en,The thermostat app cannot connect,Technical Support
+en,I cannot log in to my account,Technical Support
+en,My camera feed is black,Technical Support
+en,Bluetooth pairing fails on my sensor,Technical Support
+en,My smart plug switches off by itself,Technical Support
+en,The firmware update is stuck,Technical Support
+en,Door sensor shows offline all day,Technical Support
+en,Voice commands do not trigger lights,Technical Support
+en,The gateway light keeps blinking red,Technical Support
+en,I cannot reset device settings,Technical Support
+en,Two factor code never arrives,Technical Support
+es,Mi luz inteligente no enciende,Technical Support
+es,La app no se conecta al termostato,Technical Support
+es,No puedo iniciar sesion,Technical Support
+es,La camara muestra pantalla negra,Technical Support
+es,Falla el emparejamiento por bluetooth,Technical Support
+es,El enchufe inteligente se apaga solo,Technical Support
+es,La actualizacion de firmware se queda congelada,Technical Support
+es,El sensor de puerta aparece desconectado,Technical Support
+es,Los comandos de voz no funcionan,Technical Support
+es,La luz del gateway parpadea en rojo,Technical Support
+es,No puedo restaurar el dispositivo,Technical Support
+de,Mein Smart Licht geht nicht an,Technical Support
+de,Die App verbindet sich nicht mit dem Thermostat,Technical Support
+de,Ich kann mich nicht anmelden,Technical Support
+de,Der Kamera Feed ist schwarz,Technical Support
+de,Bluetooth Kopplung mit dem Sensor scheitert,Technical Support
+de,Meine smarte Steckdose schaltet sich aus,Technical Support
+de,Das Firmware Update bleibt stehen,Technical Support
+de,Der Tursensor ist den ganzen Tag offline,Technical Support
+de,Sprachbefehle schalten das Licht nicht,Technical Support
+de,Die Gateway LED blinkt rot,Technical Support
+de,Ich kann das Gerat nicht zurucksetzen,Technical Support
+en,I was charged twice for this month,Billing Inquiry
+en,Please send my latest invoice,Billing Inquiry
+en,I need a refund for accidental order,Billing Inquiry
+en,My payment method keeps failing,Billing Inquiry
+en,Why is there an extra service fee,Billing Inquiry
+en,I canceled but still got billed,Billing Inquiry
+en,Please update my billing address,Billing Inquiry
+en,Why did my annual plan renew,Billing Inquiry
+en,My card was declined but amount reserved,Billing Inquiry
+en,How do I switch to PayPal payment,Billing Inquiry
+en,I need a receipt for accounting,Billing Inquiry
+es,Me cobraron dos veces este mes,Billing Inquiry
+es,Necesito la ultima factura,Billing Inquiry
+es,Quiero un reembolso por compra accidental,Billing Inquiry
+es,Mi metodo de pago falla siempre,Billing Inquiry
+es,Por que hay un cargo adicional,Billing Inquiry
+es,Cancele pero me siguen cobrando,Billing Inquiry
+es,Actualicen mi direccion de facturacion,Billing Inquiry
+es,Por que renovaron mi plan anual,Billing Inquiry
+es,Mi tarjeta fue rechazada y retuvieron dinero,Billing Inquiry
+es,Como cambio pago a PayPal,Billing Inquiry
+es,Necesito comprobante para contabilidad,Billing Inquiry
+de,Ich wurde diesen Monat doppelt belastet,Billing Inquiry
+de,Bitte senden Sie meine letzte Rechnung,Billing Inquiry
+de,Ich brauche eine Ruckerstattung fur Fehlkauf,Billing Inquiry
+de,Meine Zahlungsmethode wird immer abgelehnt,Billing Inquiry
+de,Warum gibt es eine zusatzliche Gebuhr,Billing Inquiry
+de,Ich habe gekundigt und wurde weiter belastet,Billing Inquiry
+de,Bitte aktualisieren Sie meine Rechnungsadresse,Billing Inquiry
+de,Warum wurde mein Jahresabo verlangert,Billing Inquiry
+de,Meine Karte wurde abgelehnt und Betrag reserviert,Billing Inquiry
+de,Wie wechsle ich zu PayPal Zahlung,Billing Inquiry
+de,Ich brauche einen Beleg fur die Buchhaltung,Billing Inquiry
+en,Where is my order now,Order Tracking
+en,I need the tracking number,Order Tracking
+en,My package has not arrived,Order Tracking
+en,Delivery is delayed again,Order Tracking
+en,Shipment status has not changed,Order Tracking
+en,The courier says delivered but I got nothing,Order Tracking
+en,When will my replacement item arrive,Order Tracking
+en,Can you share shipping update,Order Tracking
+en,Package is stuck at sorting center,Order Tracking
+en,I entered wrong address for shipping,Order Tracking
+en,I need proof of delivery,Order Tracking
+es,Cual es el estado de mi pedido,Order Tracking
+es,Necesito numero de seguimiento,Order Tracking
+es,Mi paquete no ha llegado,Order Tracking
+es,La entrega sigue retrasada,Order Tracking
+es,El estado del envio no cambia,Order Tracking
+es,El repartidor dice entregado y no recibi nada,Order Tracking
+es,Cuando llega mi reemplazo,Order Tracking
+es,Puedes compartir actualizacion de envio,Order Tracking
+es,El paquete esta atascado en el centro logistico,Order Tracking
+es,Puse direccion incorrecta para el envio,Order Tracking
+es,Necesito comprobante de entrega,Order Tracking
+de,Wo ist meine Bestellung jetzt,Order Tracking
+de,Ich brauche die Sendungsverfolgungsnummer,Order Tracking
+de,Mein Paket ist nicht angekommen,Order Tracking
+de,Die Lieferung ist wieder verspatet,Order Tracking
+de,Der Versandstatus andert sich nicht,Order Tracking
+de,Der Kurier meldet zugestellt aber nichts da,Order Tracking
+de,Wann kommt mein Ersatzartikel an,Order Tracking
+de,Bitte senden Sie ein Versandupdate,Order Tracking
+de,Das Paket hangt im Sortierzentrum fest,Order Tracking
+de,Ich habe die falsche Lieferadresse angegeben,Order Tracking
+de,Ich brauche einen Zustellnachweis,Order Tracking
+en,The smart lock disconnects every hour,Technical Support
+es,La cerradura inteligente se desconecta cada hora,Technical Support
+de,Mein Smart Lock trennt sich jede Stunde,Technical Support
+en,I need a VAT invoice for last month,Billing Inquiry
+es,Necesito factura con IVA del mes pasado,Billing Inquiry
+de,Ich brauche eine Rechnung mit Mehrwertsteuer,Billing Inquiry
+en,Tracking page has no update for three days,Order Tracking

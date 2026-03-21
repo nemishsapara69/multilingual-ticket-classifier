@@ -1,0 +1,177 @@
+# End-to-End Multilingual Customer Support Ticket Classifier
+
+This project is your Smart Router for support tickets.
+
+When a customer writes a message like "Mi luz inteligente no funciona", the system predicts the right ticket category (for example: `Technical Support`) with a confidence score.
+
+## What You Built (Simple View)
+
+1. Data pipeline with versioning (DVC)
+2. Multilingual NLP model training (XLM-RoBERTa)
+3. Experiment tracking (MLflow)
+4. Inference API (FastAPI)
+5. Demo website (Streamlit)
+6. Containerized services (Docker)
+7. CI/CD automation (GitHub Actions)
+
+## Project Structure
+
+- `src/data_preprocessing.py`: cleans raw tickets and creates train/val/test splits.
+- `src/train.py`: fine-tunes multilingual transformer model and logs metrics to MLflow.
+- `src/inference.py`: loads model and predicts category + confidence.
+- `src/api.py`: FastAPI service with `/predict` endpoint.
+- `src/webapp.py`: Streamlit demo that calls API and displays results.
+- `dvc.yaml`: pipeline stages for preprocess + train.
+- `params.yaml`: training hyperparameters.
+- `docker/*.Dockerfile`: reproducible containers for train/api/webapp.
+- `.github/workflows/ci.yaml`: tests + docker build checks.
+- `.github/workflows/retrain.yaml`: scheduled/manual retraining workflow.
+
+## Step-by-Step: How Maria's Message Is Processed
+
+### Phase 1: Data Acquisition and Versioning
+
+1. Put your raw spreadsheet export in `data/raw/tickets.csv`.
+2. Track dataset versions with DVC.
+
+```bash
+dvc init
+dvc add data/raw/tickets.csv
+git add data/raw/tickets.csv.dvc .gitignore .dvc/
+git commit -m "Track raw ticket dataset with DVC"
+```
+
+What this means: your dataset has version history (v1.0, v1.1, etc.) without bloating Git.
+
+### Phase 2: Data Cleaning and Preprocessing
+
+Run preprocessing:
+
+```bash
+python -m src.data_preprocessing --input data/raw/tickets.csv --output_dir data/processed
+```
+
+What happens:
+
+1. Finds text and category columns
+2. Cleans text (removes emojis, extra spaces, control chars)
+3. Keeps multilingual text intact
+4. Splits into train/validation/test
+5. Saves metadata for reproducibility
+
+### Phase 3: Model Training and Experiment Tracking
+
+Train model:
+
+```bash
+python -m src.train --data_dir data/processed --model_dir models/best --params params.yaml --metrics_path models/metrics.json
+```
+
+What happens:
+
+1. Loads `xlm-roberta-base`
+2. Learns from your labeled tickets
+3. Evaluates on validation and test sets
+4. Logs hyperparameters + metrics to MLflow
+5. Saves best model in `models/best`
+
+Optional push to Hugging Face Hub:
+
+```bash
+set PUSH_TO_HUB=1
+set HF_REPO_ID=your-username/your-model-repo
+set HF_TOKEN=your_hf_token
+python -m src.train --data_dir data/processed --model_dir models/best --params params.yaml --metrics_path models/metrics.json
+```
+
+### Phase 4: Serve Model with FastAPI
+
+Start API:
+
+```bash
+uvicorn src.api:app --host 0.0.0.0 --port 8000
+```
+
+Test API:
+
+```bash
+curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" -d "{\"text\":\"Mi luz inteligente no funciona\"}"
+```
+
+Expected output style:
+
+```json
+{
+  "category": "Technical Support",
+  "confidence": 0.98,
+  "cleaned_text": "Mi luz inteligente no funciona"
+}
+```
+
+### Phase 5: Interactive Web Demo with Streamlit
+
+Run web app:
+
+```bash
+streamlit run src/webapp.py
+```
+
+What happens:
+
+1. User types message into text box
+2. Web app calls FastAPI `/predict`
+3. API calls model
+4. App shows predicted category + confidence
+
+### Phase 6: Reproducibility with Docker
+
+Build images:
+
+```bash
+docker build -f docker/api.Dockerfile -t mtc-api .
+docker build -f docker/webapp.Dockerfile -t mtc-webapp .
+docker build -f docker/train.Dockerfile -t mtc-train .
+```
+
+Run API + Web app together:
+
+```bash
+docker compose up --build
+```
+
+### Phase 7: CI/CD Automation
+
+- `ci.yaml`: runs tests and builds Docker images on push/PR.
+- `retrain.yaml`: manual/scheduled retraining job.
+
+## Quick Start (One Path)
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+python -m src.data_preprocessing --input data/raw/tickets.csv --output_dir data/processed
+python -m src.train --data_dir data/processed --model_dir models/best --params params.yaml --metrics_path models/metrics.json
+uvicorn src.api:app --host 0.0.0.0 --port 8000
+```
+
+In another terminal:
+
+```bash
+streamlit run src/webapp.py
+```
+
+## Resume Highlights You Can Claim
+
+- Built multilingual NLP classifier using transformer fine-tuning (`xlm-roberta-base`).
+- Versioned data and training pipeline with DVC.
+- Tracked experiments and metrics with MLflow.
+- Served model via production-style FastAPI endpoint.
+- Built interactive demo app with Streamlit.
+- Containerized full stack with Docker.
+- Automated testing/build/retraining workflows using GitHub Actions.
+
+## Notes
+
+- First training can be slow because model weights download from Hugging Face.
+- For production, store DVC data remote and secure your HF token in GitHub Secrets.

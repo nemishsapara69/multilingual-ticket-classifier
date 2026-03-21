@@ -1,0 +1,16 @@
+{
+  "num_samples": 107,
+  "overall_accuracy": 1.0,
+  "accuracy_by_language": {
+    "de": 1.0,
+    "en": 1.0,
+    "es": 1.0
+  },
+  "accuracy_by_expected_category": {
+    "Billing Inquiry": 1.0,
+    "Order Tracking": 1.0,
+    "Technical Support": 1.0
+  },
+  "num_errors": 0,
+  "errors": []
+}

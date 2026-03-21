@@ -1,0 +1,12 @@
+{
+  "source_file": "data\\raw\\tickets.csv",
+  "num_rows": 134,
+  "num_train": 93,
+  "num_val": 20,
+  "num_test": 21,
+  "categories": [
+    "Billing Inquiry",
+    "Order Tracking",
+    "Technical Support"
+  ]
+}

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Local artifacts
+mlruns/
+*.log
+
+# Model artifacts
+models/best/
+models/*.bin
+models/*.safetensors
+
+# Data artifacts tracked by DVC
+data/raw/*.csv
+data/raw/*.xlsx
+data/processed/*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/

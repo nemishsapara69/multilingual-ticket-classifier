@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/api.Dockerfile
+    environment:
+      - MODEL_DIR=models/best
+    ports:
+      - "8000:8000"
+
+  webapp:
+    build:
+      context: .
+      dockerfile: docker/webapp.Dockerfile
+    environment:
+      - API_URL=http://api:8000/predict
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api

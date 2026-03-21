@@ -1,0 +1,33 @@
+stages:
+  preprocess:
+    cmd: python -m src.data_preprocessing --input data/raw/tickets.csv --output_dir data/processed
+    deps:
+      - src/data_preprocessing.py
+      - data/raw/tickets.csv
+    outs:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+      - data/processed/metadata.json
+
+  train:
+    cmd: python -m src.train --data_dir data/processed --model_dir models/best --params params.yaml --metrics_path models/metrics.json
+    deps:
+      - src/train.py
+      - params.yaml
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+    params:
+      - train.model_name
+      - train.max_length
+      - train.learning_rate
+      - train.batch_size
+      - train.num_train_epochs
+      - train.weight_decay
+      - train.warmup_ratio
+      - train.seed
+    outs:
+      - models/best
+    metrics:
+      - models/metrics.json
