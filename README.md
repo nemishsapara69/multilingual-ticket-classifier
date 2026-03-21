@@ -4,6 +4,30 @@ This project is your Smart Router for support tickets.
 
 When a customer writes a message like "Mi luz inteligente no funciona", the system predicts the right ticket category (for example: `Technical Support`) with a confidence score.
 
+## Release Snapshot (v1.0.0)
+
+- Problem: Route multilingual customer tickets to the right support queue automatically.
+- Languages: English, Spanish, German.
+- Classes: `Technical Support`, `Billing Inquiry`, `Order Tracking`.
+- Serving stack: FastAPI API + Streamlit demo UI.
+- Reproducibility: DVC pipeline, Dockerfiles, and CI workflows.
+
+## Measured Results
+
+- Curated evaluation set (`data/eval/eval_queries.csv`):
+  - Accuracy: `100%` (`reports/eval_report.json`)
+- Unseen real-world style set (`data/eval/eval_queries_realworld.csv`):
+  - Accuracy: `100%` (`reports/eval_report_realworld.json`)
+
+## Architecture (At a Glance)
+
+1. Data ingestion and cleaning with `src/data_preprocessing.py`
+2. Model training with `src/train.py` (transformer path + robust baseline fallback)
+3. Inference routing with `src/inference.py`
+4. API serving with `src/api.py`
+5. Interactive demo with `src/webapp.py`
+6. Automated regression checks with `src/evaluate.py`
+
 ## What You Built (Simple View)
 
 1. Data pipeline with versioning (DVC)
