@@ -1,6 +1,7 @@
 import os
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.data_preprocessing import clean_text
@@ -18,6 +19,14 @@ class PredictionResponse(BaseModel):
 
 
 app = FastAPI(title="Multilingual Ticket Classifier API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")

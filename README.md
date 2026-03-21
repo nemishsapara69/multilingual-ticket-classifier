@@ -9,7 +9,7 @@ When a customer writes a message like "Mi luz inteligente no funciona", the syst
 - Problem: Route multilingual customer tickets to the right support queue automatically.
 - Languages: English, Spanish, German.
 - Classes: `Technical Support`, `Billing Inquiry`, `Order Tracking`.
-- Serving stack: FastAPI API + Streamlit demo UI.
+- Serving stack: FastAPI API + React demo UI.
 - Reproducibility: DVC pipeline, Dockerfiles, and CI workflows.
 
 ## Measured Results
@@ -23,9 +23,9 @@ When a customer writes a message like "Mi luz inteligente no funciona", the syst
 
 1. Data ingestion and cleaning with `src/data_preprocessing.py`
 2. Model training with `src/train.py` (transformer path + robust baseline fallback)
-3. Inference routing with `src/inference.py`
-4. API serving with `src/api.py`
-5. Interactive demo with `src/webapp.py`
+4. Inference routing with `src/inference.py`
+5. API serving with `src/api.py`
+6. Interactive React demo with `frontend/src/App.jsx`
 6. Automated regression checks with `src/evaluate.py`
 
 ## What You Built (Simple View)
@@ -34,7 +34,7 @@ When a customer writes a message like "Mi luz inteligente no funciona", the syst
 2. Multilingual NLP model training (XLM-RoBERTa)
 3. Experiment tracking (MLflow)
 4. Inference API (FastAPI)
-5. Demo website (Streamlit)
+5. Demo website (React)
 6. Containerized services (Docker)
 7. CI/CD automation (GitHub Actions)
 
@@ -44,7 +44,7 @@ When a customer writes a message like "Mi luz inteligente no funciona", the syst
 - `src/train.py`: fine-tunes multilingual transformer model and logs metrics to MLflow.
 - `src/inference.py`: loads model and predicts category + confidence.
 - `src/api.py`: FastAPI service with `/predict` endpoint.
-- `src/webapp.py`: Streamlit demo that calls API and displays results.
+- `frontend/src/App.jsx`: React demo that calls API and displays results.
 - `dvc.yaml`: pipeline stages for preprocess + train.
 - `params.yaml`: training hyperparameters.
 - `docker/*.Dockerfile`: reproducible containers for train/api/webapp.
@@ -132,12 +132,14 @@ Expected output style:
 }
 ```
 
-### Phase 5: Interactive Web Demo with Streamlit
+### Phase 5: Interactive Web Demo with React
 
 Run web app:
 
 ```bash
-streamlit run src/webapp.py
+cd frontend
+npm install
+npm run dev
 ```
 
 What happens:
@@ -182,10 +184,20 @@ uvicorn src.api:app --host 0.0.0.0 --port 8000
 In another terminal:
 
 ```bash
-streamlit run src/webapp.py
+cd frontend
+npm install
+npm run dev
 ```
 
+## Resume Highlights You Can Claim
 
+- Built multilingual NLP classifier using transformer fine-tuning (`xlm-roberta-base`).
+- Versioned data and training pipeline with DVC.
+- Tracked experiments and metrics with MLflow.
+- Served model via production-style FastAPI endpoint.
+- Built interactive demo app with React.
+- Containerized full stack with Docker.
+- Automated testing/build/retraining workflows using GitHub Actions.
 
 ## Notes
 
