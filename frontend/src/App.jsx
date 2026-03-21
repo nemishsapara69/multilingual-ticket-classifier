@@ -43,6 +43,9 @@ export default function App() {
   const [agentNote, setAgentNote] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accent, setAccent] = useState("aurora");
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [ticketLoading, setTicketLoading] = useState(false);
   const [dashboard, setDashboard] = useState({
     queue: {
       total_open: 0,
@@ -59,7 +62,7 @@ export default function App() {
     return confidenceBand(Number(result.confidence || 0));
   }, [result]);
 
-  const liveTimeline = useMemo(() => {
+  const resultTimeline = useMemo(() => {
     if (result?.processing_timeline?.length) {
       return result.processing_timeline;
     }
@@ -72,6 +75,32 @@ export default function App() {
     ];
   }, [result, channel]);
 
+  const displayedTimeline = useMemo(() => {
+    if (selectedTicket?.processing_timeline?.length) {
+      return selectedTicket.processing_timeline;
+    }
+    return resultTimeline;
+  }, [selectedTicket, resultTimeline]);
+
+  async function loadTicketDetails(ticketId) {
+    if (!ticketId) return;
+
+    setSelectedTicketId(ticketId);
+    setTicketLoading(true);
+
+    try {
+      const ticketUrl = API_URL.replace(/\/predict$/, `/tickets/${encodeURIComponent(ticketId)}`);
+      const response = await fetch(ticketUrl);
+      if (!response.ok) throw new Error("Failed to load ticket details");
+      const payload = await response.json();
+      setSelectedTicket(payload);
+    } catch {
+      setSelectedTicket(null);
+    } finally {
+      setTicketLoading(false);
+    }
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     const healthUrl = API_URL.replace(/\/predict$/, "/health");
@@ -83,6 +112,10 @@ export default function App() {
         if (!response.ok) return;
         const payload = await response.json();
         setDashboard(payload);
+
+        if (selectedTicketId) {
+          await loadTicketDetails(selectedTicketId);
+        }
       } catch {
         // Keep previous snapshot if refresh fails.
       }
@@ -142,6 +175,9 @@ export default function App() {
         if (dashboardResponse.ok) {
           const dashboardPayload = await dashboardResponse.json();
           setDashboard(dashboardPayload);
+          if (dashboardPayload.recent_tickets.length > 0) {
+            await loadTicketDetails(dashboardPayload.recent_tickets[0].id);
+          }
         }
       } catch {
         // Ignore dashboard refresh errors.
@@ -360,7 +396,11 @@ export default function App() {
                   </thead>
                   <tbody>
                     {dashboard.recent_tickets.map((row) => (
-                      <tr key={row.id}>
+                      <tr
+                        key={row.id}
+                        className={`clickable-row ${selectedTicketId === row.id ? "is-active" : ""}`}
+                        onClick={() => loadTicketDetails(row.id)}
+                      >
                         <td>{row.id}</td>
                         <td>{row.channel}</td>
                         <td>{row.language}</td>
@@ -386,8 +426,14 @@ export default function App() {
             <h2>Agent Ops</h2>
 
             <h3>Routing Timeline</h3>
+            {selectedTicket && (
+              <p className="timeline-meta">
+                Selected: {selectedTicket.id} | Total: {selectedTicket.total_processing_ms} ms
+              </p>
+            )}
+            {ticketLoading && <p className="muted">Loading selected ticket timeline...</p>}
             <ol className="timeline">
-              {liveTimeline.map((step, index) => (
+              {displayedTimeline.map((step, index) => (
                 <li key={`${step.label}-${index}`}>
                   <span>{step.label}</span>
                   <small>{timelineTimeLabel(Number(step.elapsed_ms || 0), index)}</small>

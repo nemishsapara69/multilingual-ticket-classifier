@@ -376,6 +376,19 @@ textarea:focus {
   font-weight: 700;
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.clickable-row:hover {
+  background: rgba(38, 179, 224, 0.08);
+}
+
+.clickable-row.is-active {
+  background: rgba(38, 179, 224, 0.14);
+}
+
 .empty-row {
   text-align: center;
   color: #8ea4c8;
@@ -427,6 +440,12 @@ textarea:focus {
 
 .timeline small {
   color: #8ea4c8;
+}
+
+.timeline-meta {
+  margin: 0 0 8px;
+  color: #a9bfe1;
+  font-size: 0.82rem;
 }
 
 .notes-box {

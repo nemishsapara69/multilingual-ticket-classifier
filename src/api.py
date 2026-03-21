@@ -41,6 +41,20 @@ class TicketFeedItem(BaseModel):
     priority: str
 
 
+class TicketDetailResponse(BaseModel):
+    id: str
+    channel: str
+    language: str
+    category: str
+    status: str
+    age: str
+    priority: str
+    cleaned_text: str
+    confidence: float
+    processing_timeline: list[TimelineStep]
+    total_processing_ms: int
+
+
 class QueueCounts(BaseModel):
     total_open: int
     technical_support: int
@@ -82,6 +96,22 @@ def to_feed_item(ticket: dict) -> TicketFeedItem:
         status=ticket["status"],
         age=format_age(ticket["created_at"]),
         priority=ticket["priority"],
+    )
+
+
+def to_ticket_detail(ticket: dict) -> TicketDetailResponse:
+    return TicketDetailResponse(
+        id=ticket["id"],
+        channel=ticket["channel"],
+        language=ticket["language"],
+        category=ticket["category"],
+        status=ticket["status"],
+        age=format_age(ticket["created_at"]),
+        priority=ticket["priority"],
+        cleaned_text=ticket["cleaned_text"],
+        confidence=ticket["confidence"],
+        processing_timeline=ticket["processing_timeline"],
+        total_processing_ms=ticket["total_processing_ms"],
     )
 
 
@@ -146,6 +176,15 @@ def dashboard() -> DashboardResponse:
     )
 
 
+@app.get("/tickets/{ticket_id}", response_model=TicketDetailResponse)
+def ticket_details(ticket_id: str) -> TicketDetailResponse:
+    for ticket in app.state.tickets:
+        if ticket["id"] == ticket_id:
+            return to_ticket_detail(ticket)
+
+    raise HTTPException(status_code=404, detail="Ticket not found")
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: TicketRequest) -> PredictionResponse:
     t0 = perf_counter()
@@ -167,17 +206,6 @@ def predict(payload: TicketRequest) -> PredictionResponse:
 
     status = "Escalated" if pred["confidence"] < 0.5 else "Assigned"
     app.state.ticket_counter += 1
-    app.state.tickets.append(
-        {
-            "id": f"GT-{app.state.ticket_counter}",
-            "channel": payload.channel,
-            "language": detect_language(cleaned),
-            "category": pred["category"],
-            "status": status,
-            "priority": payload.priority,
-            "created_at": datetime.now(timezone.utc),
-        }
-    )
     t3 = perf_counter()
 
     timeline = [
@@ -186,11 +214,28 @@ def predict(payload: TicketRequest) -> PredictionResponse:
         TimelineStep(label="Model inference complete", elapsed_ms=int(round((t2 - t0) * 1000))),
         TimelineStep(label="Queue recommendation generated", elapsed_ms=int(round((t3 - t0) * 1000))),
     ]
+    total_processing_ms = int(round((t3 - t0) * 1000))
+
+    app.state.tickets.append(
+        {
+            "id": f"GT-{app.state.ticket_counter}",
+            "channel": payload.channel,
+            "language": detect_language(cleaned),
+            "category": pred["category"],
+            "status": status,
+            "priority": payload.priority,
+            "cleaned_text": cleaned,
+            "confidence": pred["confidence"],
+            "processing_timeline": timeline,
+            "total_processing_ms": total_processing_ms,
+            "created_at": datetime.now(timezone.utc),
+        }
+    )
 
     return PredictionResponse(
         category=pred["category"],
         confidence=pred["confidence"],
         cleaned_text=cleaned,
         processing_timeline=timeline,
-        total_processing_ms=int(round((t3 - t0) * 1000)),
+        total_processing_ms=total_processing_ms,
     )
