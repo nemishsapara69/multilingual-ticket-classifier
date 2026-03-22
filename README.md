@@ -296,14 +296,6 @@ For safety, change these values in Render environment after first deploy.
 2. Frontend can classify after page refresh.
 3. After backend restart/redeploy, dashboard still retains previous tickets.
 
-## Resume Highlights You Can Claim
-
-- Built multilingual NLP ticket classifier with hybrid inference (transformer path + robust sklearn fallback) for reliable local execution.
-- Served model via FastAPI with CORS support and production-style health/predict endpoints.
-- Developed a realistic React operations console UI with queue monitoring, confidence bands, SLA hints, and ticket history panel.
-- Added reproducible MLOps flow with DVC, MLflow tracking, Docker artifacts, and CI retraining workflows.
-- Created benchmark suites and evaluation automation, achieving 100% accuracy on project curated and real-world test sets.
-
 
 ## Notes
 
