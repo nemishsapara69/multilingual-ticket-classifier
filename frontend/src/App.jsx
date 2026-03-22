@@ -49,12 +49,15 @@ export default function App() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [apiStatus, setApiStatus] = useState("Checking");
-  const [agentNote, setAgentNote] = useState("");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accent, setAccent] = useState("aurora");
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [ticketLoading, setTicketLoading] = useState(false);
+  const [threadMessages, setThreadMessages] = useState([]);
+  const [threadInput, setThreadInput] = useState("");
+  const [threadLoading, setThreadLoading] = useState(false);
+  const [threadSending, setThreadSending] = useState(false);
   const [dashboard, setDashboard] = useState({
     queue: {
       total_open: 0,
@@ -102,6 +105,29 @@ export default function App() {
     return resultTimeline;
   }, [selectedTicket, resultTimeline]);
 
+  async function loadTicketMessages(ticketId) {
+    if (!ticketId) return;
+
+    setThreadLoading(true);
+    try {
+      const messagesUrl = API_URL.replace(/\/predict$/, `/tickets/${encodeURIComponent(ticketId)}/messages`);
+      const response = await fetch(messagesUrl, { headers: authHeaders() });
+      if (response.status === 401 || response.status === 403) {
+        setAuthToken("");
+        localStorage.removeItem("mtc_token");
+        throw new Error("Authentication required");
+      }
+      if (!response.ok) throw new Error("Failed to load conversation thread");
+
+      const payload = await response.json();
+      setThreadMessages(payload.messages || []);
+    } catch {
+      setThreadMessages([]);
+    } finally {
+      setThreadLoading(false);
+    }
+  }
+
   async function loadTicketDetails(ticketId) {
     if (!ticketId) return;
 
@@ -119,10 +145,45 @@ export default function App() {
       if (!response.ok) throw new Error("Failed to load ticket details");
       const payload = await response.json();
       setSelectedTicket(payload);
+      await loadTicketMessages(ticketId);
     } catch {
       setSelectedTicket(null);
+      setThreadMessages([]);
     } finally {
       setTicketLoading(false);
+    }
+  }
+
+  async function sendThreadMessage() {
+    const ticketId = selectedTicketId;
+    const message = threadInput.trim();
+    if (!ticketId || !message) return;
+
+    setThreadSending(true);
+    try {
+      const messagesUrl = API_URL.replace(/\/predict$/, `/tickets/${encodeURIComponent(ticketId)}/messages`);
+      const response = await fetch(messagesUrl, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({ message }),
+      });
+
+      if (response.status === 401 || response.status === 403) {
+        setAuthToken("");
+        localStorage.removeItem("mtc_token");
+        throw new Error("Authentication required");
+      }
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to send message");
+      }
+
+      setThreadInput("");
+      await loadTicketMessages(ticketId);
+    } catch (err) {
+      setError(err.message || "Could not send thread message.");
+    } finally {
+      setThreadSending(false);
     }
   }
 
@@ -604,14 +665,40 @@ export default function App() {
               ))}
             </ol>
 
-            <h3>Agent Notes</h3>
-            <textarea
-              className="notes-box"
-              value={agentNote}
-              onChange={(e) => setAgentNote(e.target.value)}
-              placeholder="Add optional handling notes for downstream support team..."
-              rows={5}
-            />
+            <h3>Conversation Thread</h3>
+            {!selectedTicketId && <p className="muted">Select a ticket from feed to open conversation.</p>}
+
+            {selectedTicketId && (
+              <>
+                <div className="thread-box">
+                  {threadLoading && <p className="muted">Loading conversation...</p>}
+                  {!threadLoading && threadMessages.length === 0 && (
+                    <p className="muted">No messages yet for this ticket.</p>
+                  )}
+                  {threadMessages.map((msg) => (
+                    <article key={msg.id} className={`thread-message ${msg.role}`}>
+                      <p className="thread-head">{msg.sender} ({msg.role})</p>
+                      <p className="thread-body">{msg.message}</p>
+                    </article>
+                  ))}
+                </div>
+
+                {authRole !== "viewer" && (
+                  <div className="thread-compose">
+                    <textarea
+                      className="notes-box"
+                      value={threadInput}
+                      onChange={(e) => setThreadInput(e.target.value)}
+                      placeholder="Reply to this ticket conversation..."
+                      rows={3}
+                    />
+                    <button className="ghost-btn" type="button" onClick={sendThreadMessage} disabled={threadSending}>
+                      {threadSending ? "Sending..." : "Send Reply"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
           </aside>
         </section>
       </main>

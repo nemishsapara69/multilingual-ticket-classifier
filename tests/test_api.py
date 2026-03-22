@@ -77,3 +77,33 @@ def test_viewer_cannot_predict(monkeypatch, tmp_path):
         )
 
     assert response.status_code == 403
+
+
+def test_ticket_thread_endpoints(monkeypatch, tmp_path):
+    monkeypatch.setenv("SKIP_MODEL_LOAD", "1")
+    monkeypatch.setenv("ENABLE_AUTH", "0")
+    monkeypatch.setenv("TICKET_DB_PATH", str(tmp_path / "tickets_test.db"))
+    monkeypatch.setenv("AUTH_DB_PATH", str(tmp_path / "auth_test.db"))
+
+    with TestClient(app) as client:
+        app.state.engine = DummyEngine()
+        pred = client.post("/predict", json={"text": "My app is not working"})
+        assert pred.status_code == 200
+
+        dashboard = client.get("/dashboard")
+        assert dashboard.status_code == 200
+        ticket_id = dashboard.json()["recent_tickets"][0]["id"]
+
+        messages = client.get(f"/tickets/{ticket_id}/messages")
+        assert messages.status_code == 200
+        assert len(messages.json()["messages"]) >= 1
+
+        post_reply = client.post(
+            f"/tickets/{ticket_id}/messages",
+            json={"message": "Please share your order number."},
+        )
+        assert post_reply.status_code == 200
+
+        messages_after = client.get(f"/tickets/{ticket_id}/messages")
+        assert messages_after.status_code == 200
+        assert len(messages_after.json()["messages"]) >= 2

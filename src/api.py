@@ -131,6 +131,24 @@ class TicketDetailResponse(BaseModel):
     total_processing_ms: int
 
 
+class TicketMessageRequest(BaseModel):
+    message: str = Field(..., min_length=1)
+
+
+class TicketMessageItem(BaseModel):
+    id: int
+    ticket_id: str
+    sender: str
+    role: str
+    message: str
+    created_at: str
+
+
+class TicketMessagesResponse(BaseModel):
+    ticket_id: str
+    messages: list[TicketMessageItem]
+
+
 class QueueCounts(BaseModel):
     total_open: int
     technical_support: int
@@ -333,6 +351,40 @@ def ticket_details(ticket_id: str, _: dict = Depends(require_roles("admin", "age
     raise HTTPException(status_code=404, detail="Ticket not found")
 
 
+@app.get("/tickets/{ticket_id}/messages", response_model=TicketMessagesResponse)
+def ticket_messages(ticket_id: str, _: dict = Depends(require_roles("admin", "agent", "viewer"))) -> TicketMessagesResponse:
+    ticket = app.state.ticket_store.get_ticket(ticket_id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    messages = app.state.ticket_store.list_messages(ticket_id)
+    return TicketMessagesResponse(ticket_id=ticket_id, messages=[TicketMessageItem(**msg) for msg in messages])
+
+
+@app.post("/tickets/{ticket_id}/messages", response_model=TicketMessageItem)
+def add_ticket_message(
+    ticket_id: str,
+    payload: TicketMessageRequest,
+    user: dict = Depends(require_roles("admin", "agent")),
+) -> TicketMessageItem:
+    message = payload.message.strip()
+    if not message:
+        raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+    try:
+        created = app.state.ticket_store.add_message(
+            ticket_id=ticket_id,
+            sender=user["username"],
+            role=user["role"],
+            message=message,
+            created_at=datetime.now(timezone.utc).isoformat(),
+        )
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    return TicketMessageItem(**created)
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict(payload: TicketRequest, _: dict = Depends(require_roles("admin", "agent"))) -> PredictionResponse:
     t0 = perf_counter()
@@ -378,6 +430,13 @@ def predict(payload: TicketRequest, _: dict = Depends(require_roles("admin", "ag
             "total_processing_ms": total_processing_ms,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
+    )
+    app.state.ticket_store.add_message(
+        ticket_id=f"GT-{app.state.ticket_counter}",
+        sender="customer",
+        role="customer",
+        message=payload.text,
+        created_at=datetime.now(timezone.utc).isoformat(),
     )
 
     return PredictionResponse(
