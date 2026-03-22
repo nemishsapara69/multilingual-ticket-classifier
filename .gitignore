@@ -19,6 +19,7 @@ models/*.safetensors
 data/raw/*.csv
 data/raw/*.xlsx
 data/processed/*.csv
+data/processed/*.db
 
 # Jupyter
 .ipynb_checkpoints/
