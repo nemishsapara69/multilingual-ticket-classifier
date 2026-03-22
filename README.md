@@ -214,6 +214,70 @@ What it does:
 4. Starts React UI (`frontend`) unless `-ApiOnly`
 5. Optionally runs both eval suites with `-RunEval`
 
+## Deployment (Step-by-Step)
+
+This section is the easiest path to put your project online.
+
+### Step 1: Push Latest Code to GitHub
+
+Make sure your latest code is on the `main` branch.
+
+### Step 2: Deploy Backend API on Render
+
+1. Go to Render and create a **Blueprint** service.
+2. Connect your GitHub repo.
+3. Render will auto-detect `render.yaml` and create the API service.
+4. Wait for deployment to finish.
+5. Open your backend URL and test:
+
+```bash
+https://<your-render-service>.onrender.com/health
+```
+
+Expected output should include:
+
+```json
+{ "status": "ok", "model_loaded": true }
+```
+
+Notes:
+
+- Ticket persistence is enabled with SQLite at `/var/data/tickets.db` using Render persistent disk.
+- Main env variables are documented in `.env.example`.
+
+### Step 3: Deploy Frontend on Vercel
+
+1. Go to Vercel and import the same GitHub repo.
+2. Set **Root Directory** to `frontend`.
+3. Add environment variable:
+
+```bash
+VITE_API_URL=https://<your-render-service>.onrender.com/predict
+```
+
+4. Deploy.
+
+`frontend/vercel.json` already includes SPA rewrite config.
+
+### Step 4: End-to-End Live Test
+
+1. Open your Vercel frontend URL.
+2. Submit a test message, for example:
+  - `Mi luz inteligente no funciona`
+  - `I was charged twice this month`
+  - `Wo ist mein Paket?`
+3. Confirm:
+  - prediction appears,
+  - queue count updates,
+  - recent ticket row appears,
+  - clicking row shows that ticket timeline.
+
+### Step 5: Production Checks
+
+1. Backend health endpoint responds consistently.
+2. Frontend can classify after page refresh.
+3. After backend restart/redeploy, dashboard still retains previous tickets.
+
 ## Resume Highlights You Can Claim
 
 - Built multilingual NLP ticket classifier with hybrid inference (transformer path + robust sklearn fallback) for reliable local execution.
