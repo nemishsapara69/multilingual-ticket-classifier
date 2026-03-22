@@ -14,5 +14,21 @@ services:
         value: "0"
       - key: ENABLE_RULE_FALLBACK
         value: "1"
+      - key: ENABLE_AUTH
+        value: "1"
+      - key: AUTH_ADMIN_USERNAME
+        value: admin
+      - key: AUTH_ADMIN_PASSWORD
+        value: change-admin-pass
+      - key: AUTH_AGENT_USERNAME
+        value: agent
+      - key: AUTH_AGENT_PASSWORD
+        value: change-agent-pass
+      - key: AUTH_VIEWER_USERNAME
+        value: viewer
+      - key: AUTH_VIEWER_PASSWORD
+        value: change-viewer-pass
       - key: TICKET_DB_PATH
         value: /tmp/tickets.db
+      - key: AUTH_DB_PATH
+        value: /tmp/auth.db

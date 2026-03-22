@@ -272,6 +272,24 @@ VITE_API_URL=https://<your-render-service>.onrender.com/predict
   - recent ticket row appears,
   - clicking row shows that ticket timeline.
 
+### Step 4.1: Login and Roles (v2)
+
+The app now supports role-based login.
+
+Default demo users:
+
+- `admin` (full access)
+- `agent` (can classify + view dashboard)
+- `viewer` (read-only dashboard)
+
+Default passwords are set via environment variables in `render.yaml`:
+
+- `AUTH_ADMIN_PASSWORD`
+- `AUTH_AGENT_PASSWORD`
+- `AUTH_VIEWER_PASSWORD`
+
+For safety, change these values in Render environment after first deploy.
+
 ### Step 5: Production Checks
 
 1. Backend health endpoint responds consistently.

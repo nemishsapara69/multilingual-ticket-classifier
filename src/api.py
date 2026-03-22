@@ -1,11 +1,14 @@
 import os
 from datetime import datetime, timezone
 from time import perf_counter
+from typing import Callable
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
+from src.auth_store import AuthStore
 from src.data_preprocessing import clean_text
 from src.inference import InferenceEngine
 from src.ticket_store import TicketStore
@@ -68,6 +71,27 @@ class TicketRequest(BaseModel):
     text: str = Field(..., min_length=1, description="Customer support message")
     priority: str = Field(default="Normal", description="Ticket priority")
     channel: str = Field(default="Web Portal", description="Ticket source channel")
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    username: str
+    role: str
+
+
+class AuthConfigResponse(BaseModel):
+    enabled: bool
+
+
+class UserProfile(BaseModel):
+    username: str
+    role: str
 
 
 class PredictionResponse(BaseModel):
@@ -178,6 +202,7 @@ def calculate_queue_counts(tickets: list[dict]) -> QueueCounts:
 
 
 app = FastAPI(title="Multilingual Ticket Classifier API", version="1.0.0")
+security = HTTPBearer(auto_error=False)
 
 app.add_middleware(
     CORSMiddleware,
@@ -192,6 +217,27 @@ app.add_middleware(
 def startup_event() -> None:
     app.state.engine = None
     app.state.startup_error = None
+
+    app.state.auth_enabled = os.getenv("ENABLE_AUTH", "1") == "1"
+    auth_db_path = os.getenv("AUTH_DB_PATH", "data/processed/auth.db")
+    app.state.auth_store = AuthStore(db_path=auth_db_path)
+    app.state.auth_store.initialize()
+    app.state.auth_store.ensure_user(
+        username=os.getenv("AUTH_ADMIN_USERNAME", "admin"),
+        password=os.getenv("AUTH_ADMIN_PASSWORD", "change-admin-pass"),
+        role="admin",
+    )
+    app.state.auth_store.ensure_user(
+        username=os.getenv("AUTH_AGENT_USERNAME", "agent"),
+        password=os.getenv("AUTH_AGENT_PASSWORD", "change-agent-pass"),
+        role="agent",
+    )
+    app.state.auth_store.ensure_user(
+        username=os.getenv("AUTH_VIEWER_USERNAME", "viewer"),
+        password=os.getenv("AUTH_VIEWER_PASSWORD", "change-viewer-pass"),
+        role="viewer",
+    )
+
     db_path = os.getenv("TICKET_DB_PATH", "data/processed/tickets.db")
     app.state.ticket_store = TicketStore(db_path=db_path, max_rows=150)
     app.state.ticket_store.initialize()
@@ -211,6 +257,53 @@ def startup_event() -> None:
             app.state.engine = KeywordFallbackEngine()
 
 
+def get_current_user(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> dict:
+    if not app.state.auth_enabled:
+        return {"username": "local-dev", "role": "admin"}
+
+    if credentials is None or not credentials.credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing bearer token")
+
+    session = app.state.auth_store.get_session(credentials.credentials)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+
+    return {"username": session["username"], "role": session["role"]}
+
+
+def require_roles(*roles: str) -> Callable:
+    def _checker(user: dict = Depends(get_current_user)) -> dict:
+        if user["role"] not in roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role")
+        return user
+
+    return _checker
+
+
+@app.get("/auth/config", response_model=AuthConfigResponse)
+def auth_config() -> AuthConfigResponse:
+    return AuthConfigResponse(enabled=bool(app.state.auth_enabled))
+
+
+@app.post("/auth/login", response_model=LoginResponse)
+def auth_login(payload: LoginRequest) -> LoginResponse:
+    if not app.state.auth_enabled:
+        token = app.state.auth_store.create_session(username="local-dev", role="admin", ttl_hours=48)
+        return LoginResponse(access_token=token, username="local-dev", role="admin")
+
+    user = app.state.auth_store.verify_credentials(payload.username.strip(), payload.password)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+
+    token = app.state.auth_store.create_session(username=user["username"], role=user["role"], ttl_hours=24)
+    return LoginResponse(access_token=token, username=user["username"], role=user["role"])
+
+
+@app.get("/auth/me", response_model=UserProfile)
+def auth_me(user: dict = Depends(get_current_user)) -> UserProfile:
+    return UserProfile(username=user["username"], role=user["role"])
+
+
 @app.get("/health")
 def health() -> dict:
     return {
@@ -221,7 +314,7 @@ def health() -> dict:
 
 
 @app.get("/dashboard", response_model=DashboardResponse)
-def dashboard() -> DashboardResponse:
+def dashboard(_: dict = Depends(require_roles("admin", "agent", "viewer"))) -> DashboardResponse:
     tickets = app.state.ticket_store.list_tickets()
 
     return DashboardResponse(
@@ -232,7 +325,7 @@ def dashboard() -> DashboardResponse:
 
 
 @app.get("/tickets/{ticket_id}", response_model=TicketDetailResponse)
-def ticket_details(ticket_id: str) -> TicketDetailResponse:
+def ticket_details(ticket_id: str, _: dict = Depends(require_roles("admin", "agent", "viewer"))) -> TicketDetailResponse:
     ticket = app.state.ticket_store.get_ticket(ticket_id)
     if ticket:
         return to_ticket_detail(ticket)
@@ -241,7 +334,7 @@ def ticket_details(ticket_id: str) -> TicketDetailResponse:
 
 
 @app.post("/predict", response_model=PredictionResponse)
-def predict(payload: TicketRequest) -> PredictionResponse:
+def predict(payload: TicketRequest, _: dict = Depends(require_roles("admin", "agent"))) -> PredictionResponse:
     t0 = perf_counter()
 
     if app.state.engine is None:

@@ -33,6 +33,15 @@ function timelineTimeLabel(elapsedMs, index) {
 }
 
 export default function App() {
+  const [authEnabled, setAuthEnabled] = useState(false);
+  const [authToken, setAuthToken] = useState(() => localStorage.getItem("mtc_token") || "");
+  const [authUser, setAuthUser] = useState("");
+  const [authRole, setAuthRole] = useState("");
+  const [loginUsername, setLoginUsername] = useState("admin");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState("");
+
   const [message, setMessage] = useState("");
   const [priority, setPriority] = useState("Normal");
   const [channel, setChannel] = useState("Web Portal");
@@ -56,6 +65,17 @@ export default function App() {
     },
     recent_tickets: [],
   });
+
+  function authHeaders() {
+    if (!authToken) {
+      return { "Content-Type": "application/json" };
+    }
+
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${authToken}`,
+    };
+  }
 
   const band = useMemo(() => {
     if (!result) return null;
@@ -90,7 +110,12 @@ export default function App() {
 
     try {
       const ticketUrl = API_URL.replace(/\/predict$/, `/tickets/${encodeURIComponent(ticketId)}`);
-      const response = await fetch(ticketUrl);
+      const response = await fetch(ticketUrl, { headers: authHeaders() });
+      if (response.status === 401 || response.status === 403) {
+        setAuthToken("");
+        localStorage.removeItem("mtc_token");
+        throw new Error("Authentication required");
+      }
       if (!response.ok) throw new Error("Failed to load ticket details");
       const payload = await response.json();
       setSelectedTicket(payload);
@@ -105,10 +130,49 @@ export default function App() {
     const controller = new AbortController();
     const healthUrl = API_URL.replace(/\/predict$/, "/health");
     const dashboardUrl = API_URL.replace(/\/predict$/, "/dashboard");
+    const authConfigUrl = API_URL.replace(/\/predict$/, "/auth/config");
+    const meUrl = API_URL.replace(/\/predict$/, "/auth/me");
+
+    async function loadAuthConfig() {
+      try {
+        const response = await fetch(authConfigUrl, { signal: controller.signal });
+        if (!response.ok) return;
+        const payload = await response.json();
+        setAuthEnabled(Boolean(payload.enabled));
+      } catch {
+        // Keep auth disabled in unavailable cases.
+      }
+    }
+
+    async function loadMe() {
+      if (!authToken) return;
+      try {
+        const response = await fetch(meUrl, {
+          signal: controller.signal,
+          headers: { Authorization: `Bearer ${authToken}` },
+        });
+        if (!response.ok) {
+          setAuthToken("");
+          localStorage.removeItem("mtc_token");
+          return;
+        }
+        const payload = await response.json();
+        setAuthUser(payload.username || "");
+        setAuthRole(payload.role || "");
+      } catch {
+        // Ignore me endpoint errors.
+      }
+    }
 
     async function fetchDashboard() {
       try {
-        const response = await fetch(dashboardUrl, { signal: controller.signal });
+        const response = await fetch(dashboardUrl, {
+          signal: controller.signal,
+          headers: authHeaders(),
+        });
+        if (response.status === 401 || response.status === 403) {
+          return;
+        }
         if (!response.ok) return;
         const payload = await response.json();
         setDashboard(payload);
@@ -135,6 +199,8 @@ export default function App() {
       }
     }
 
+    loadAuthConfig();
+    loadMe();
     checkApi();
 
     const poll = setInterval(fetchDashboard, 10000);
@@ -142,7 +208,7 @@ export default function App() {
       clearInterval(poll);
       controller.abort();
     };
-  }, []);
+  }, [authToken, selectedTicketId]);
 
   async function onClassify() {
     setError("");
@@ -157,9 +223,15 @@ export default function App() {
     try {
       const response = await fetch(API_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders(),
         body: JSON.stringify({ text: message, priority, channel }),
       });
+
+      if (response.status === 401 || response.status === 403) {
+        setAuthToken("");
+        localStorage.removeItem("mtc_token");
+        throw new Error("Your session expired. Please login again.");
+      }
 
       if (!response.ok) {
         const text = await response.text();
@@ -171,7 +243,7 @@ export default function App() {
 
       try {
         const dashboardUrl = API_URL.replace(/\/predict$/, "/dashboard");
-        const dashboardResponse = await fetch(dashboardUrl);
+        const dashboardResponse = await fetch(dashboardUrl, { headers: authHeaders() });
         if (dashboardResponse.ok) {
           const dashboardPayload = await dashboardResponse.json();
           setDashboard(dashboardPayload);
@@ -187,6 +259,91 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onLogin(event) {
+    event.preventDefault();
+    setLoginError("");
+
+    if (!loginUsername.trim() || !loginPassword.trim()) {
+      setLoginError("Enter username and password.");
+      return;
+    }
+
+    setLoginLoading(true);
+    try {
+      const loginUrl = API_URL.replace(/\/predict$/, "/auth/login");
+      const response = await fetch(loginUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Login failed");
+      }
+
+      const payload = await response.json();
+      setAuthToken(payload.access_token || "");
+      setAuthUser(payload.username || "");
+      setAuthRole(payload.role || "");
+      localStorage.setItem("mtc_token", payload.access_token || "");
+      setLoginPassword("");
+    } catch (err) {
+      setLoginError(err.message || "Could not sign in.");
+    } finally {
+      setLoginLoading(false);
+    }
+  }
+
+  function onLogout() {
+    setAuthToken("");
+    setAuthUser("");
+    setAuthRole("");
+    localStorage.removeItem("mtc_token");
+  }
+
+  const requiresLogin = authEnabled && !authToken;
+
+  if (requiresLogin) {
+    return (
+      <div className="page">
+        <div className="glow glow-a" />
+        <div className="glow glow-b" />
+        <main className="shell auth-shell">
+          <section className="panel auth-panel">
+            <p className="eyebrow">Secure Access</p>
+            <h1>Smart Router Console Login</h1>
+            <p className="muted">Sign in with your role account to access ticket routing operations.</p>
+            <form onSubmit={onLogin} className="auth-form">
+              <label>
+                Username
+                <input
+                  value={loginUsername}
+                  onChange={(e) => setLoginUsername(e.target.value)}
+                  placeholder="admin"
+                />
+              </label>
+              <label>
+                Password
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Enter password"
+                />
+              </label>
+              <button className="primary-btn" disabled={loginLoading}>
+                {loginLoading ? "Signing in..." : "Sign In"}
+              </button>
+            </form>
+            {loginError && <p className="error-msg">{loginError}</p>}
+            <p className="muted creds-note">Default demo users: admin / agent / viewer</p>
+          </section>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -212,8 +369,14 @@ export default function App() {
             <span className={`status-dot ${apiStatus === "Online" ? "up" : "down"}`}>
               API: {apiStatus}
             </span>
+            {authEnabled && (
+              <span className="status-chip">User: {authUser || "Unknown"} ({authRole || "n/a"})</span>
+            )}
             <span className="status-chip">Model: multilingual-ticket-classifier</span>
             <span className="status-chip">Routing mode: Real-time</span>
+            {authEnabled && (
+              <button type="button" className="ghost-btn logout-btn" onClick={onLogout}>Logout</button>
+            )}
             <label className="accent-picker">
               Theme Accent
               <select value={accent} onChange={(e) => setAccent(e.target.value)}>
