@@ -1,8 +1,6 @@
 import os
-from collections import deque
 from datetime import datetime, timezone
 from time import perf_counter
-from typing import Deque
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from src.data_preprocessing import clean_text
 from src.inference import InferenceEngine
+from src.ticket_store import TicketStore
 
 
 class TicketRequest(BaseModel):
@@ -140,8 +139,10 @@ app.add_middleware(
 def startup_event() -> None:
     app.state.engine = None
     app.state.startup_error = None
-    app.state.ticket_counter = 1200
-    app.state.tickets: Deque[dict] = deque(maxlen=150)
+    db_path = os.getenv("TICKET_DB_PATH", "data/processed/tickets.db")
+    app.state.ticket_store = TicketStore(db_path=db_path, max_rows=150)
+    app.state.ticket_store.initialize()
+    app.state.ticket_counter = app.state.ticket_store.next_counter(default_counter=1200)
 
     if os.getenv("SKIP_MODEL_LOAD", "0") == "1":
         return
@@ -166,8 +167,7 @@ def health() -> dict:
 
 @app.get("/dashboard", response_model=DashboardResponse)
 def dashboard() -> DashboardResponse:
-    tickets = list(app.state.tickets)
-    tickets.sort(key=lambda item: item["created_at"], reverse=True)
+    tickets = app.state.ticket_store.list_tickets()
 
     return DashboardResponse(
         queue=calculate_queue_counts(tickets),
@@ -178,9 +178,9 @@ def dashboard() -> DashboardResponse:
 
 @app.get("/tickets/{ticket_id}", response_model=TicketDetailResponse)
 def ticket_details(ticket_id: str) -> TicketDetailResponse:
-    for ticket in app.state.tickets:
-        if ticket["id"] == ticket_id:
-            return to_ticket_detail(ticket)
+    ticket = app.state.ticket_store.get_ticket(ticket_id)
+    if ticket:
+        return to_ticket_detail(ticket)
 
     raise HTTPException(status_code=404, detail="Ticket not found")
 
@@ -216,7 +216,7 @@ def predict(payload: TicketRequest) -> PredictionResponse:
     ]
     total_processing_ms = int(round((t3 - t0) * 1000))
 
-    app.state.tickets.append(
+    app.state.ticket_store.insert_ticket(
         {
             "id": f"GT-{app.state.ticket_counter}",
             "channel": payload.channel,
@@ -226,9 +226,9 @@ def predict(payload: TicketRequest) -> PredictionResponse:
             "priority": payload.priority,
             "cleaned_text": cleaned,
             "confidence": pred["confidence"],
-            "processing_timeline": timeline,
+            "processing_timeline": [step.model_dump() for step in timeline],
             "total_processing_ms": total_processing_ms,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc).isoformat(),
         }
     )
 

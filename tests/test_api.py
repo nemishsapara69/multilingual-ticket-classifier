@@ -10,8 +10,9 @@ class DummyEngine:
         return {"category": "Technical Support", "confidence": 0.98}
 
 
-def test_predict_endpoint_success(monkeypatch):
+def test_predict_endpoint_success(monkeypatch, tmp_path):
     monkeypatch.setenv("SKIP_MODEL_LOAD", "1")
+    monkeypatch.setenv("TICKET_DB_PATH", str(tmp_path / "tickets_test.db"))
 
     with TestClient(app) as client:
         app.state.engine = DummyEngine()
@@ -24,8 +25,9 @@ def test_predict_endpoint_success(monkeypatch):
     assert "Mi luz inteligente no funciona" in payload["cleaned_text"]
 
 
-def test_predict_endpoint_model_not_loaded(monkeypatch):
+def test_predict_endpoint_model_not_loaded(monkeypatch, tmp_path):
     monkeypatch.setenv("SKIP_MODEL_LOAD", "1")
+    monkeypatch.setenv("TICKET_DB_PATH", str(tmp_path / "tickets_test.db"))
 
     with TestClient(app) as client:
         app.state.engine = None
