@@ -12,5 +12,7 @@ services:
         value: models/best
       - key: SKIP_MODEL_LOAD
         value: "0"
+      - key: ENABLE_RULE_FALLBACK
+        value: "1"
       - key: TICKET_DB_PATH
         value: /tmp/tickets.db
