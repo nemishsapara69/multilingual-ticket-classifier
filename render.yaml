@@ -13,8 +13,4 @@ services:
       - key: SKIP_MODEL_LOAD
         value: "0"
       - key: TICKET_DB_PATH
-        value: /var/data/tickets.db
-    disk:
-      name: ticket-db
-      mountPath: /var/data
-      sizeGB: 1
+        value: /tmp/tickets.db
